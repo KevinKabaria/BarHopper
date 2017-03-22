@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">BarHopper</string>
+    <string name="Signup_Here">Signup Here!</string>
+    <string name="submit">Send!</string>
+    <string name="adfadf">ADFADF</string>
+    <string-array name="age_groups">
+        <item>Select Age!</item>
+        <item>18-20</item>
+        <item>21-24</item>
+        <item>25-30</item>
+        <item>30-34</item>
+        <item>35-40</item>
+    </string-array>
+</resources>
