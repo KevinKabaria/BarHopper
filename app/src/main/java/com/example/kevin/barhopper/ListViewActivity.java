@@ -102,6 +102,9 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     // When button is clicked, handle
     public void handleClick(int id, Place p) {
         System.out.println("Name!: " + p.getName());
+
+        // Create new intent and activate it.
+        // Pass in Place p via Parcelable
         Intent intent = new Intent(this, BarInfoView_activity.class);
         intent.putExtra("com.example.kevin.barhopper.ListViewActivity.PLACE", (Parcelable) p);
         startActivity(intent);
