@@ -42,8 +42,8 @@ import java.util.ArrayList;
 public class ListViewActivity extends AppCompatActivity implements OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
-    private double curLat = 40.298069;
-    private double curLong = -74.678407;
+    private double curLat = 40.750568;
+    private double curLong = -73.993519;
 
     // Amount of buttons we would like to display
     private int maxSize = 9;
