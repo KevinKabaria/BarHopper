@@ -41,11 +41,16 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private GoogleApiClient mGoogleApiClient;
     private double curLat = 40.298069;
     private double curLong = -74.678407;
+
+    // Amount of buttons we would like to display
+    private int maxSize = 9;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
 
+        // Create new google API client. API key stored in manifest
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
                 .addApi(Places.GEO_DATA_API)
@@ -63,47 +68,41 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
 
-    // Create a series of buttons
+    // Create a series of buttons representing bars in vincinity
+    // Assigns buttons IDs from 0 to num-1, where num is amount of buttons to be displayed
     public void createUI(int num) {
         LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
-        linearLayout.setOrientation(LinearLayout.VERTICAL);
-       // linearLayout.setId(R.id.layout_1);
 
+        LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
 
         for (int i = 0; i < num; i++) {
-
+            // Creates button as a linear layout from XML template
             LinearLayout button = (LinearLayout)  inflater.inflate(R.layout.listview_button_layout, linearLayout, false);
+
+            // Assigns incremental ID to button
+            // Possible issue: uniqueness
             button.setId(i);
 
-         //   TextView textView = (TextView) inflater.inflate(R.layout.text_layout, linearLayout, false);
-         //   textView.setId(i);
-
-            // button.addView(text);
-
-           // TextView textView = (TextView) LayoutInflater.from(getApplicationContext()).inflate(R.layout.text_layout, linearLayout, false);
-
-         //   textView.setText("TESTESTESTSTETEST");
-         //   textView.setVisibility(View.VISIBLE);
-           // button.setLayoutParams(R.layout.listview_button_layout);
+            // Add to master layout
             linearLayout.addView(button);
-         //   linearLayout.addView(textView);
-
         }
 
+        // Create parameters for master layout.
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ActionBar.LayoutParams.FILL_PARENT, ActionBar.LayoutParams.WRAP_CONTENT);
-        //this.addContentView(linearLayout);
-        this.addContentView(linearLayout, params);
+
+        // Add master layout to view-screen
+        this.addContentView(linearLayout, layoutParams);
 
     }
 
+    // When button is clicked, handle
     public void handleClick(int id, Place p) {
         System.out.println("Name!: " + p.getName());
-
     }
 
+    // When provided a LinearLayout and ID of child, return matching child.
+    // If no children with matching ID found, return NULL.
     public View getChildOfLayout(LinearLayout layout, int ID) {
         int n = layout.getChildCount();
         for (int i = 0; i < n; i++) {
@@ -112,22 +111,25 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 return child;
             }
         }
-
         return null;
     }
 
 
     // Provide a function to update interface from a separate thread.
+    // Accepts an ArrayList of Places
     public void updateResults(final ArrayList<Place> estab) {
-        int maxSize = 9;
+        // Set amount of buttons to max size if more.
         int length = estab.size();
         if (length > maxSize) {
             length = maxSize;
         }
+
+        // Initialize buttons for UI
         createUI(length);
 
+        // Iterate through received Place values, getting information for button
         for (int i = 0; i < length; i++) {
-            LinearLayout display1 = (LinearLayout) findViewById(i);
+            LinearLayout button = (LinearLayout) findViewById(i);
 
             // Retrieve name information for respective place.
             CharSequence placeName = estab.get(i).getName();
@@ -139,70 +141,47 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             // Retrieve shortest distance to place (straight path)
             double distance = UsefulMathCalculations.calculateDistanceInMile(curLat, curLong, toLat, toLong);
 
-           // String distanceTo = Double.toString(distance);
+            // While accuracy is imprecise, set to vague wording
             String distanceTo = "<5 miles";
 
             if (distance < 1.0) {
                 distanceTo = "<1 Mile";
             }
-
-           // String buttonText = "<h1><span style=\"font-size: 12pt;\"><strong>" +
-                  //  placeName +"</strong></span></h1><h5><span style=\"font-size: 8pt;\">&lt;"
-                   // +distanceTo + "</span></h5>";
-
-            String buttonText = placeName + "\n" + distanceTo;
-
-
-
-            TextView textView = (TextView) getChildOfLayout(display1, R.id.big1);
+            // Set values of the Big and Small texts for each button
+            TextView textView = (TextView) getChildOfLayout(button, R.id.bigText);
             textView.setText(placeName);
 
-            TextView textView2 = (TextView) getChildOfLayout(display1, R.id.small);
+            TextView textView2 = (TextView) getChildOfLayout(button, R.id.smallText);
             textView2.setText(distanceTo);
 
 
-
-         //   display1.setText(buttonText);
-/*
-            TextView text1 = (TextView) display1.
-            text1.setText(placeName);
-
-            TextView text2 = (TextView) display1.getChildAt(1);
-            text2.setText(distanceTo);
-
-          */
-            System.out.println("BUTTON: "+ i);
-
+            // For each button, send onClick characteristics
             final int finalI = i;
-
-            display1.setOnClickListener(new View.OnClickListener() {
+            button.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     handleClick(finalI, estab.get(finalI));
                 }
             });
-
         }
-        System.out.println("DONE WITH NAMING!");
-
-
     }
 
+    // Passes in current location, receives information about venues in area
+    // Sends that venue information in form of Place ArrayList in order to create UI
     public void getAreaInfo() {
+        // Have to perform Network Ops on another thread
         new Thread(new Runnable(
-
-
         ) {
             @Override
             public void run() {
-
                 String sLat = Double.toString(curLat);
                 String sLong = Double.toString(curLong);
 
+                // Format for Google Cloud Function Call
                 String latLng = sLat + "," + sLong;
-
 
                 String response = "";
 
+                // Contact Google Cloud Function, receive string of IDs
                 try {
                     JSONObject parent = new JSONObject();
                     parent.put("text", latLng);
@@ -214,17 +193,12 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                     e.printStackTrace();
                 }
 
+                // Split by new line delimiter into array of ids
                 String[] ids = response.split("\n");
 
-              //  for (String s : ids) {
-                //    System.out.println("responseID: " + s);
-                //}
-
-
-
+                // Create array list of places, convert each ID to Place info
                 final ArrayList<Place> places = new ArrayList<Place>();
                 for (String id : ids) {
-
                     PendingResult<PlaceBuffer> result =
                             Places.GeoDataApi.getPlaceById(mGoogleApiClient, id);
 
@@ -238,64 +212,16 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
                     // Release buffer so no memory leak
                     place.release();
-
                 }
 
-
-
-
-
+                // Build UI and perform actions off of place info
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         updateResults(places);
                     }
                 });
-
-
-
-
-
-
-
-            /*
-                LatLng southWest = new LatLng(40.315, -74.68935);
-                LatLng northEast = new LatLng(40.389636, -74.583778);
-
-
-
-                LatLngBounds princeton = new LatLngBounds(southWest, northEast);
-                AutocompleteFilter filter = new AutocompleteFilter.Builder()
-                        .setTypeFilter(AutocompleteFilter.TYPE_FILTER_ESTABLISHMENT)
-                        .build();
-
-                // Need to release when done
-                PendingResult<AutocompletePredictionBuffer> result =
-                        Places.GeoDataApi.getAutocompletePredictions(
-                                mGoogleApiClient,
-                                "Newark Airport",
-                                princeton,
-                                filter);
-
-                // Blocks until task complete
-                AutocompletePredictionBuffer places = result.await();
-                for (AutocompletePrediction p : places) {
-                    System.out.println(p.getFullText(null));
-                    System.out.println(p.getPlaceTypes());
-                }
-                // Release
-                places.release();
-                */
-
-                System.out.println("DONE!");
-
-
-
-
-
-
-
-            }
+             }
         }).start();
     }
 }
