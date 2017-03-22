@@ -2,6 +2,8 @@ package com.example.kevin.barhopper;
 
 import android.app.ActionBar;
 import android.content.Context;
+import android.content.Intent;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -31,6 +33,7 @@ import com.google.android.gms.vision.text.Text;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -99,7 +102,11 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     // When button is clicked, handle
     public void handleClick(int id, Place p) {
         System.out.println("Name!: " + p.getName());
+        Intent intent = new Intent(this, BarInfoView_activity.class);
+        intent.putExtra("com.example.kevin.barhopper.ListViewActivity.PLACE", (Parcelable) p);
+        startActivity(intent);
     }
+
 
     // When provided a LinearLayout and ID of child, return matching child.
     // If no children with matching ID found, return NULL.

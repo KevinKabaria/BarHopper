@@ -21,11 +21,13 @@
             </intent-filter>
         </activity>
         <activity android:name=".SignUp" />
-        <activity android:name=".LaunchPageActivity"></activity>
+        <activity android:name=".LaunchPageActivity" />
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBLMI-kWdl7QIXwexENlmGUqnDItfb5WtQ"/>
+            android:value="AIzaSyBLMI-kWdl7QIXwexENlmGUqnDItfb5WtQ" />
+
+        <activity android:name=".BarInfoView_activity"></activity>
     </application>
 
 </manifest>
