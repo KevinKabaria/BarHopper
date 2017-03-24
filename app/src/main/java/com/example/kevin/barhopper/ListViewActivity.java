@@ -3,6 +3,9 @@ package com.example.kevin.barhopper;
 import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +22,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.PendingResult;
+
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.AutocompletePrediction;
 import com.google.android.gms.location.places.AutocompletePredictionBuffer;
@@ -26,6 +31,8 @@ import com.google.android.gms.location.places.GeoDataApi;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.vision.text.Text;
@@ -44,6 +51,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private GoogleApiClient mGoogleApiClient;
     private double curLat = 40.750568;
     private double curLong = -73.993519;
+    private static final int LOCATION_REQUEST=1340;
 
     // Amount of buttons we would like to display
     private int maxSize = 9;
@@ -53,6 +61,9 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
 
+        PermissionManager.check(this, android.Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_REQUEST);
+        maintainGPS();
+
         // Create new google API client. API key stored in manifest
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
@@ -61,7 +72,9 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 .enableAutoManage(this, this)
                 .build();
 
+
         getAreaInfo();
+
 
     }
 
@@ -70,10 +83,72 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
     }
 
+    public void handleCurLocation(Location location) {
+        curLat = location.getLatitude();
+        curLong = location.getLongitude();
+
+        System.out.println("CURRENT LOCATION! " + curLat + " " + curLong);
+    }
+
+
+    // Receive GPS updates:
+    @SuppressWarnings("MissingPermission")
+    public void maintainGPS() {
+
+        LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+
+        LocationListener locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+                //Called when a new location is found by network location providers
+                handleCurLocation(location);
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+
+        };
+
+        System.out.println("Establishing..");
+        //noinspection MissingPermission
+
+        Location lastLocation;
+
+        if ((lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)) == null) {
+            lastLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
+
+        if (lastLocation != null) {
+            handleCurLocation(lastLocation);
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+
+
+        System.out.println("Established Link!");
+
+
+    }
+
+
 
     // Create a series of buttons representing bars in vincinity
     // Assigns buttons IDs from 0 to num-1, where num is amount of buttons to be displayed
     public void createUI(int num) {
+
+
+
         LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
 
@@ -186,6 +261,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 String sLat = Double.toString(curLat);
                 String sLong = Double.toString(curLong);
 
+
+
                 // Format for Google Cloud Function Call
                 String latLng = sLat + "," + sLong;
 
@@ -202,6 +279,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
                 }
+
+                System.out.println("LAT: " + sLat + " " + "LONG: " + sLong);
 
                 // Split by new line delimiter into array of ids
                 String[] ids = response.split("\n");
