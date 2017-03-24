@@ -1,6 +1,5 @@
 package com.example.kevin.barhopper;
 
-import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
@@ -10,12 +9,9 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -24,23 +20,15 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.common.api.PendingResult;
 
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.places.AutocompleteFilter;
-import com.google.android.gms.location.places.AutocompletePrediction;
-import com.google.android.gms.location.places.AutocompletePredictionBuffer;
-import com.google.android.gms.location.places.GeoDataApi;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.vision.text.Text;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -132,8 +120,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         if (lastLocation != null) {
             handleCurLocation(lastLocation);
         }
-
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        // 10k ms, a min movement of 5 meters.
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 5, locationListener);
 
 
         System.out.println("Established Link!");
@@ -152,7 +140,26 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
 
-        LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
+       // LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
+        LinearLayout linearLayout = (LinearLayout) findViewById(R.id.vertListing);
+
+        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                System.out.println("Place: " + place.getName());
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                System.out.println("An error occurred: " + status);
+            }
+        });
+
 
         for (int i = 0; i < num; i++) {
             // Creates button as a linear layout from XML template
@@ -166,11 +173,6 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             linearLayout.addView(button);
         }
 
-        // Create parameters for master layout.
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ActionBar.LayoutParams.FILL_PARENT, ActionBar.LayoutParams.WRAP_CONTENT);
-
-        // Add master layout to view-screen
-        this.addContentView(linearLayout, layoutParams);
 
     }
 
