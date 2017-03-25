@@ -58,6 +58,9 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     // Swipe to refresh
     private SwipeRefreshLayout swipeContainer;
 
+    // The autocomplete bar
+    private PlaceAutocompleteFragment autocompleteFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,7 +86,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 .enableAutoManage(this, this)
                 .build();
 
-        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+        autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
@@ -154,6 +157,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         // Gotta end the refreshing
         swipeContainer.setRefreshing(false);
+        autocompleteFragment.setText("");
+
 
     }
 
@@ -200,7 +205,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             handleCurLocation(lastLocation);
         }
         // 10k ms, a min movement of 5 meters.
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 3, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 3, locationListener);
 
 
         System.out.println("Established Link!");
@@ -213,15 +218,13 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     // Create a series of buttons representing bars in vincinity
     // Assigns buttons IDs from 0 to num-1, where num is amount of buttons to be displayed
     public void createUI(int num) {
-
-
-
         LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
 
        // LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.vertListing);
 
+        // To clean up view on re-calls with updates.
         int childNum;
         // We know its been called before
         if ((childNum = linearLayout.getChildCount()) > 1) {
@@ -231,10 +234,6 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 linearLayout.removeViews(1, childNum-1);
             //}
         }
-
-
-
-
 
         for (int i = 0; i < num; i++) {
             // Creates button as a linear layout from XML template
@@ -368,8 +367,13 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         System.out.println("LAT: " + sLat + " " + "LONG: " + sLong);
 
+        if (response == null || response.equals("")) {
+            System.out.println("No venues in area");
+            return;
+        }
         // Split by new line delimiter into array of ids
         String[] ids = response.split("\n");
+
 
         // Create array list of places, convert each ID to Place info
         final ArrayList<Place> places = new ArrayList<Place>();
