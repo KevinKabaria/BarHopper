@@ -19,7 +19,7 @@ public class UsefulMathCalculations {
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        double kmVal = (Math.round(AVERAGE_RADIUS_OF_EARTH_KM * c));
+        double kmVal = AVERAGE_RADIUS_OF_EARTH_KM * c;
         double mile = 0.621371*kmVal;
         return mile;
     }
