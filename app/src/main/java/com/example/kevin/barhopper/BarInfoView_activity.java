@@ -1,8 +1,12 @@
 package com.example.kevin.barhopper;
 
+import android.content.Intent;
 import android.media.Rating;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
@@ -22,7 +26,7 @@ public class BarInfoView_activity extends AppCompatActivity {
         createUI(origP);
     }
 
-    public void createUI(Place p) {
+    public void createUI(final Place p) {
         CharSequence titleS = p.getName();
         float ratingF = p.getRating();
         int priceI = p.getPriceLevel();
@@ -48,5 +52,49 @@ public class BarInfoView_activity extends AppCompatActivity {
         description.setText(descriptionS);
 
 
+        Button mapButton = (Button) findViewById(R.id.mapButton);
+        mapButton.setText("Show me on map!");
+        mapButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                bringMap(p);
+            }
+        });
+
+
+
+
+    }
+
+    public void bringMap(Place p) {
+        String placeLat = Double.toString(p.getLatLng().latitude);
+        String placeLong = Double.toString(p.getLatLng().longitude);
+
+        // Create string for what we want google maps to do
+        String place = "geo:"+placeLat+","+placeLong+"?q=" + p.getName() + ", " + p.getAddress();
+
+        // Preprocess string for edge cases like & and US-1 that don't show up
+        place = preprocName(place);
+
+        System.out.println(place);
+        Uri gmapsURI = Uri.parse(place);
+
+        // check if some kind of mapping application is installed
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmapsURI);
+        startActivity(mapIntent);
+    }
+
+    public String preprocName(String name) {
+        String returnName = name;
+        if (name.contains("&")) {
+            returnName = name.replace("&","and");
+        }
+
+        if (name.contains("US-")) {
+            returnName = name.replace("US-", "U.S. ");
+        }
+
+        return returnName;
     }
 }
