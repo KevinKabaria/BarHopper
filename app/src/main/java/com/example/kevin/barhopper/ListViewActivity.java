@@ -32,6 +32,8 @@ import org.json.JSONObject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class ListViewActivity extends AppCompatActivity implements OnConnectionFailedListener {
@@ -39,6 +41,10 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private GoogleApiClient mGoogleApiClient;
     private double curLat = 40.750568;
     private double curLong = -73.993519;
+
+    private double lastLat = 0;
+    private double lastLong = 0;
+
     private static final int LOCATION_REQUEST=1340;
 
     // Amount of buttons we would like to display
@@ -60,11 +66,52 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 .enableAutoManage(this, this)
                 .build();
 
+        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
-        getAreaInfo();
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                place.freeze();
+                System.out.println("Place: " + place.getName());
+                curLat = place.getLatLng().latitude;
+                curLong = place.getLatLng().longitude;
+                System.out.println(curLat + " " + curLong);
+
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                System.out.println("An error occurred: " + status);
+            }
+        });
+
+        recurringCordUpdate();
 
 
     }
+
+    public void recurringCordUpdate() {
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                while(true) {
+                    getAreaInfo();
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
+
+    }
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -72,8 +119,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
     public void handleCurLocation(Location location) {
-        curLat = location.getLatitude();
-        curLong = location.getLongitude();
+      //  curLat = location.getLatitude();
+      //  curLong = location.getLongitude();
 
         System.out.println("CURRENT LOCATION! " + curLat + " " + curLong);
     }
@@ -143,22 +190,18 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
        // LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.vertListing);
 
-        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
-                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+        int childNum;
+        // We know its been called before
+        if ((childNum = linearLayout.getChildCount()) > 1) {
+            // Remove all other children
+            // minus 1 for the autocomplete bar
+           // for (int i = 0; i < childNum-1; i++) {
+                linearLayout.removeViews(1, childNum-1);
+            //}
+        }
 
-        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(Place place) {
-                // TODO: Get info about the selected place.
-                System.out.println("Place: " + place.getName());
-            }
 
-            @Override
-            public void onError(Status status) {
-                // TODO: Handle the error.
-                System.out.println("An error occurred: " + status);
-            }
-        });
+
 
 
         for (int i = 0; i < num; i++) {
@@ -205,6 +248,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     // Provide a function to update interface from a separate thread.
     // Accepts an ArrayList of Places
     public void updateResults(final ArrayList<Place> estab) {
+
         // Set amount of buttons to max size if more.
         int length = estab.size();
         if (length > maxSize) {
@@ -254,65 +298,72 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
     // Passes in current location, receives information about venues in area
     // Sends that venue information in form of Place ArrayList in order to create UI
-    public void getAreaInfo() {
+    final public void getAreaInfo() {
         // Have to perform Network Ops on another thread
-        new Thread(new Runnable(
-        ) {
+        // But design is that it is called from another thread
+
+        // Check if an unecessary redundant call.
+        if ((lastLat == curLat) && (lastLong == curLong)) {
+            return;
+        }
+
+        lastLat = curLat;
+        lastLong = curLong;
+
+
+        String sLat = Double.toString(curLat);
+        String sLong = Double.toString(curLong);
+
+
+
+        // Format for Google Cloud Function Call
+        String latLng = sLat + "," + sLong;
+
+        String response = "";
+
+        // Contact Google Cloud Function, receive string of IDs
+        try {
+            JSONObject parent = new JSONObject();
+            parent.put("text", latLng);
+            URL url = new URL("https://us-central1-silent-wharf-151102.cloudfunctions.net/SearchLocations");
+            response = InternetConnect.sendPost(url, parent);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("LAT: " + sLat + " " + "LONG: " + sLong);
+
+        // Split by new line delimiter into array of ids
+        String[] ids = response.split("\n");
+
+        // Create array list of places, convert each ID to Place info
+        final ArrayList<Place> places = new ArrayList<Place>();
+        for (String id : ids) {
+            PendingResult<PlaceBuffer> result =
+                    Places.GeoDataApi.getPlaceById(mGoogleApiClient, id);
+
+            // Blocking Call!
+            PlaceBuffer place = result.await();
+
+            // The place object is in spot 0
+            // Freeze so release won't remove
+            // Increased memory usage, but allows for caching
+            places.add(place.get(0).freeze());
+
+            // Release buffer so no memory leak
+            place.release();
+        }
+
+        // Build UI and perform actions off of place info
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                String sLat = Double.toString(curLat);
-                String sLong = Double.toString(curLong);
-
-
-
-                // Format for Google Cloud Function Call
-                String latLng = sLat + "," + sLong;
-
-                String response = "";
-
-                // Contact Google Cloud Function, receive string of IDs
-                try {
-                    JSONObject parent = new JSONObject();
-                    parent.put("text", latLng);
-                    URL url = new URL("https://us-central1-silent-wharf-151102.cloudfunctions.net/SearchLocations");
-                    response = InternetConnect.sendPost(url, parent);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-
-                System.out.println("LAT: " + sLat + " " + "LONG: " + sLong);
-
-                // Split by new line delimiter into array of ids
-                String[] ids = response.split("\n");
-
-                // Create array list of places, convert each ID to Place info
-                final ArrayList<Place> places = new ArrayList<Place>();
-                for (String id : ids) {
-                    PendingResult<PlaceBuffer> result =
-                            Places.GeoDataApi.getPlaceById(mGoogleApiClient, id);
-
-                    // Blocking Call!
-                    PlaceBuffer place = result.await();
-
-                    // The place object is in spot 0
-                    // Freeze so release won't remove
-                    // Increased memory usage, but allows for caching
-                    places.add(place.get(0).freeze());
-
-                    // Release buffer so no memory leak
-                    place.release();
-                }
-
-                // Build UI and perform actions off of place info
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateResults(places);
-                    }
-                });
-             }
-        }).start();
+                updateResults(places);
+            }
+        });
     }
+
+
 }
