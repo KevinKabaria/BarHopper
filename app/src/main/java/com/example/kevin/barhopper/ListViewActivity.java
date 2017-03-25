@@ -7,6 +7,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -39,21 +40,37 @@ import java.util.TimerTask;
 public class ListViewActivity extends AppCompatActivity implements OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
-    private double curLat = 40.750568;
-    private double curLong = -73.993519;
+    private double curLat = -1;
+    private double curLong = -1;
 
     private double lastLat = 0;
     private double lastLong = 0;
 
+    private double locLat = -1;
+    private double locLong = -1;
+
     private static final int LOCATION_REQUEST=1340;
+    private static final int BACKGROUND_POLLMS=800;
 
     // Amount of buttons we would like to display
     private int maxSize = 9;
+
+    // Swipe to refresh
+    private SwipeRefreshLayout swipeContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
+
+        // Handles our swipe to refresh
+        swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
+        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                handleSwipeRefresh();
+            }
+        });
 
         PermissionManager.check(this, android.Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_REQUEST);
         maintainGPS();
@@ -90,6 +107,10 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         recurringCordUpdate();
 
+        // Set initial display to be home
+        curLat = locLat;
+        curLong = locLong;
+
 
     }
 
@@ -101,7 +122,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 while(true) {
                     getAreaInfo();
                     try {
-                        Thread.sleep(500);
+                        Thread.sleep(BACKGROUND_POLLMS);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -119,10 +140,21 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
     public void handleCurLocation(Location location) {
-      //  curLat = location.getLatitude();
-      //  curLong = location.getLongitude();
+        locLat = location.getLatitude();
+        locLong = location.getLongitude();
+        System.out.println("CURRENT LOCATION! " + locLat + " " + locLong);
+    }
 
-        System.out.println("CURRENT LOCATION! " + curLat + " " + curLong);
+    // Called when swipe-pulldown
+    // We just update curLat/Long to locLat
+    public void handleSwipeRefresh() {
+        System.out.println("CURRENT LOCATION! " + locLat + " " + locLong);
+        curLat = locLat;
+        curLong = locLong;
+
+        // Gotta end the refreshing
+        swipeContainer.setRefreshing(false);
+
     }
 
 
@@ -168,7 +200,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             handleCurLocation(lastLocation);
         }
         // 10k ms, a min movement of 5 meters.
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 5, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 3, locationListener);
 
 
         System.out.println("Established Link!");
@@ -303,7 +335,8 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         // But design is that it is called from another thread
 
         // Check if an unecessary redundant call.
-        if ((lastLat == curLat) && (lastLong == curLong)) {
+        if (((lastLat == curLat) && (lastLong == curLong)) ||
+                ((curLat == -1) || (curLong == -1))) {
             return;
         }
 
