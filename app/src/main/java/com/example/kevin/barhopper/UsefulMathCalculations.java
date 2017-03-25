@@ -23,4 +23,6 @@ public class UsefulMathCalculations {
         double mile = 0.621371*kmVal;
         return mile;
     }
+
+
 }

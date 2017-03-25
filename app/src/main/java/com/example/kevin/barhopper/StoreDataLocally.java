@@ -33,14 +33,22 @@ public class StoreDataLocally {
         }
 
         byte[] buffer = new byte[10000];
+        int val = 0;
         try {
-            int val = fis.read(buffer, 0, 10000);
+            val = fis.read(buffer, 0, 10000);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        byte[] convertString = new byte[val];
+
+        for (int i=0; i<val; i++) {
+            convertString[i] = buffer[i];
+        }
+
+
         try {
-            return new String(buffer, "UTF-8");
+            return new String(convertString, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }

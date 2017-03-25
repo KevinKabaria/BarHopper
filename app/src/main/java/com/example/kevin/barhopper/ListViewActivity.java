@@ -49,8 +49,10 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private double locLat = -1;
     private double locLong = -1;
 
-    private static final int LOCATION_REQUEST=1340;
+    private static final int LOCATION_REQUEST=5;
     private static final int BACKGROUND_POLLMS=800;
+    private static final int GPS_POLL_RATE=30000;
+    private static final int GPS_MIN_MOVE=5;
 
     // Amount of buttons we would like to display
     private int maxSize = 9;
@@ -60,11 +62,16 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
     // The autocomplete bar
     private PlaceAutocompleteFragment autocompleteFragment;
+    private String phoneNum;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
+
+        // Get current identity
+        phoneNum = StoreDataLocally.readFromFile("store_data", ListViewActivity.this).toString();
+        // make it usable
 
         // Handles our swipe to refresh
         swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
@@ -146,6 +153,32 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         locLat = location.getLatitude();
         locLong = location.getLongitude();
         System.out.println("CURRENT LOCATION! " + locLat + " " + locLong);
+
+
+
+        // Contact Google Cloud Function, store current positioning
+        // Format: phone num;lat;long
+        final String postData = phoneNum + ";" + Double.toString(locLat) + ";" + Double.toString(locLong);
+
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    JSONObject parent = new JSONObject();
+                    parent.put("text", postData);
+                    URL url = new URL("https://us-central1-silent-wharf-151102.cloudfunctions.net/RegisterLocation");
+                    String response = InternetConnect.sendPost(url, parent);
+                    System.out.println(response);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+
     }
 
     // Called when swipe-pulldown
@@ -205,7 +238,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             handleCurLocation(lastLocation);
         }
         // 10k ms, a min movement of 5 meters.
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 3, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_POLL_RATE, GPS_MIN_MOVE, locationListener);
 
 
         System.out.println("Established Link!");
