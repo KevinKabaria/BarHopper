@@ -4,14 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Parcelable;
-import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
@@ -56,14 +53,13 @@ public class listbuttonArrayAdapter extends BaseAdapter {
 
         position--;
 
+        // Add search button to top
         if (position == -1) {
-            View button = inflater.inflate(R.layout.text_layout, null);
+            View button = inflater.inflate(R.layout.search_button, null);
             button.setOnClickListener(new View.OnClickListener() {
 
                 @Override
                 public void onClick(View v) {
-                    System.out.println("CLICK CLICK!");
-
                     try {
                         Intent intent =
                                 new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)

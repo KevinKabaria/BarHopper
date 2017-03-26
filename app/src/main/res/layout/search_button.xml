@@ -5,11 +5,14 @@
     android:clickable="true"
     android:layout_weight="1"
 >
-    <TextView
+
+
+    <Button
 
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="CLICK TO SEARCH!"
+        android:clickable="false"
 
     />
 

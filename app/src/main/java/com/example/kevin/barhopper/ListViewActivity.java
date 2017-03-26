@@ -56,8 +56,8 @@ import java.util.ArrayList;
 public class ListViewActivity extends AppCompatActivity implements OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
-    private double curLat = 40.357297599999995;
-    private double curLong = -74.6672226;
+    private double curLat = -1;
+    private double curLong = -1;
 
     private double lastLat = 0;
     private double lastLong = 0;
@@ -116,8 +116,6 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
 
-        handleIntent(getIntent());
-
         // Get current identity
         phoneNum = StoreDataLocally.readFromFile("store_data", ListViewActivity.this).toString();
         // make it usable
@@ -141,74 +139,14 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 .addApi(Places.PLACE_DETECTION_API)
                 .enableAutoManage(this, this)
                 .build();
-/*
-        autocompleteFragment = (PlaceAutocompleteFragment)
-                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
-        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(Place place) {
-                // TODO: Get info about the selected place.
-                place.freeze();
-                System.out.println("Place: " + place.getName());
-                curLat = place.getLatLng().latitude;
-                curLong = place.getLatLng().longitude;
-                System.out.println(curLat + " " + curLong);
-
-            }
-
-            @Override
-            public void onError(Status status) {
-                // TODO: Handle the error.
-                System.out.println("An error occurred: " + status);
-            }
-        });
-*/
         recurringCordUpdate();
 
         // Set initial display to be home
-   //     curLat = locLat;
-//        curLong = locLong;
+        curLat = locLat;
+        curLong = locLong;
 
 
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        setIntent(intent);
-        handleIntent(intent);
-    }
-
-    private void handleIntent(Intent intent) {
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            String query = intent.getStringExtra(SearchManager.QUERY);
-            System.out.println(query);
-        }
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.options_menu, menu);
-
-        SearchManager searchmanager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
-
-
-
-        searchView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
-        searchView.setSearchableInfo(
-                searchmanager.getSearchableInfo(getComponentName()));
-
-
-
-        return true;
     }
 
     // When placed a place, sets current search coords there.
@@ -239,20 +177,6 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
 
-    public void handleMapSearchClick() {
-        System.out.println("CLICK CLICK!");
-        int PLACE_AUTOCOMPLETE_REQUEST_CODE = 1;
-        try {
-            Intent intent =
-                    new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
-                            .build(ListViewActivity.this);
-            startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE);
-        } catch (GooglePlayServicesRepairableException e) {
-            // TODO: Handle the error.
-        } catch (GooglePlayServicesNotAvailableException e) {
-            // TODO: Handle the error.
-        }
-    }
 
     public void recurringCordUpdate() {
         new Thread(new Runnable() {
@@ -377,31 +301,6 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
 
-    // Create a series of buttons representing bars in vincinity
-    // Assigns buttons IDs from 0 to num-1, where num is amount of buttons to be displayed
-    public void createUI(int num, ListViewButton[] buttonInfo) {
-        LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
-                (Context.LAYOUT_INFLATER_SERVICE);
-
-        ListView linearLayout = (ListView) findViewById(R.id.vertListing);
-        System.out.println(buttonInfo.length);
-        final listbuttonArrayAdapter adapter = new listbuttonArrayAdapter(this, buttonInfo);
-
-
-        linearLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                System.out.println("CLICKED!");
-                System.out.println(parent.findViewById(R.id.bigText));
-
-            }
-        });
-
-        linearLayout.setAdapter(adapter);
-
-        System.out.println("display!");
-
-    }
 
     // Provide a function to update interface from a separate thread.
     // Accepts an ArrayList of Places
