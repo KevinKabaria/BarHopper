@@ -1,5 +1,7 @@
 package com.example.kevin.barhopper;
 
+import android.app.Activity;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
@@ -7,25 +9,41 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.ListView;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.PendingResult;
 
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.AutocompletePredictionBuffer;
+import com.google.android.gms.location.places.GeoDataApi;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,15 +51,13 @@ import org.json.JSONObject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 public class ListViewActivity extends AppCompatActivity implements OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
-    private double curLat = -1;
-    private double curLong = -1;
+    private double curLat = 40.357297599999995;
+    private double curLong = -74.6672226;
 
     private double lastLat = 0;
     private double lastLong = 0;
@@ -54,8 +70,10 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private static final int GPS_POLL_RATE=30000;
     private static final int GPS_MIN_MOVE=5;
 
+    public static final int PLACE_AUTOCOMPLETE_REQUEST_CODE = 1;
+
     // Amount of buttons we would like to display
-    private int maxSize = 9;
+    private int maxSize = 1000;
 
     // Swipe to refresh
     private SwipeRefreshLayout swipeContainer;
@@ -64,10 +82,41 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     private PlaceAutocompleteFragment autocompleteFragment;
     private String phoneNum;
 
+
+
+    // Create data structure to store butotns
+    public class ListViewButton {
+        private String name;
+        private String distance;
+        private Place p;
+
+        public ListViewButton(String name, String distance, Place p) {
+            this.name = name;
+            this.distance = distance;
+            this.p = p;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
+        public String getDistance() {
+            return this.distance;
+        }
+
+        public Place getPlace() {
+            return this.p;
+        }
+    }
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_view);
+
+        handleIntent(getIntent());
 
         // Get current identity
         phoneNum = StoreDataLocally.readFromFile("store_data", ListViewActivity.this).toString();
@@ -92,7 +141,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 .addApi(Places.PLACE_DETECTION_API)
                 .enableAutoManage(this, this)
                 .build();
-
+/*
         autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
@@ -114,14 +163,95 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
                 System.out.println("An error occurred: " + status);
             }
         });
-
+*/
         recurringCordUpdate();
 
         // Set initial display to be home
-        curLat = locLat;
-        curLong = locLong;
+   //     curLat = locLat;
+//        curLong = locLong;
 
 
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+            System.out.println(query);
+        }
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.options_menu, menu);
+
+        SearchManager searchmanager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+
+
+
+        searchView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        searchView.setSearchableInfo(
+                searchmanager.getSearchableInfo(getComponentName()));
+
+
+
+        return true;
+    }
+
+    // When placed a place, sets current search coords there.
+    public void setCurDisplayCoords(Place place) {
+        curLat = place.getLatLng().latitude;
+        curLong = place.getLatLng().longitude;
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                Place place = PlaceAutocomplete.getPlace(this, data);
+                System.out.println("Place: " + place.getName());
+
+                setCurDisplayCoords(place);
+
+            } else if (resultCode == PlaceAutocomplete.RESULT_ERROR) {
+                Status status = PlaceAutocomplete.getStatus(this, data);
+                // TODO: Handle the error.
+                System.out.println(status.getStatusMessage());
+
+            } else if (resultCode == RESULT_CANCELED) {
+                // The user canceled the operation.
+            }
+        }
+    }
+
+
+    public void handleMapSearchClick() {
+        System.out.println("CLICK CLICK!");
+        int PLACE_AUTOCOMPLETE_REQUEST_CODE = 1;
+        try {
+            Intent intent =
+                    new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
+                            .build(ListViewActivity.this);
+            startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE);
+        } catch (GooglePlayServicesRepairableException e) {
+            // TODO: Handle the error.
+        } catch (GooglePlayServicesNotAvailableException e) {
+            // TODO: Handle the error.
+        }
     }
 
     public void recurringCordUpdate() {
@@ -190,7 +320,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         // Gotta end the refreshing
         swipeContainer.setRefreshing(false);
-        autocompleteFragment.setText("");
+     //   autocompleteFragment.setText("");
 
 
     }
@@ -247,67 +377,31 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
     }
 
 
-
     // Create a series of buttons representing bars in vincinity
     // Assigns buttons IDs from 0 to num-1, where num is amount of buttons to be displayed
-    public void createUI(int num) {
+    public void createUI(int num, ListViewButton[] buttonInfo) {
         LayoutInflater inflater = (LayoutInflater)getApplicationContext().getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
 
-       // LinearLayout linearLayout = (LinearLayout) inflater.inflate(R.layout.vertical_layout, null, false);
-        LinearLayout linearLayout = (LinearLayout) findViewById(R.id.vertListing);
-
-        // To clean up view on re-calls with updates.
-        int childNum;
-        // We know its been called before
-        if ((childNum = linearLayout.getChildCount()) > 1) {
-            // Remove all other children
-            // minus 1 for the autocomplete bar
-           // for (int i = 0; i < childNum-1; i++) {
-                linearLayout.removeViews(1, childNum-1);
-            //}
-        }
-
-        for (int i = 0; i < num; i++) {
-            // Creates button as a linear layout from XML template
-            LinearLayout button = (LinearLayout)  inflater.inflate(R.layout.listview_button_layout, linearLayout, false);
-
-            // Assigns incremental ID to button
-            // Possible issue: uniqueness
-            button.setId(i);
-
-            // Add to master layout
-            linearLayout.addView(button);
-        }
+        ListView linearLayout = (ListView) findViewById(R.id.vertListing);
+        System.out.println(buttonInfo.length);
+        final listbuttonArrayAdapter adapter = new listbuttonArrayAdapter(this, buttonInfo);
 
 
-    }
+        linearLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                System.out.println("CLICKED!");
+                System.out.println(parent.findViewById(R.id.bigText));
 
-    // When button is clicked, handle
-    public void handleClick(int id, Place p) {
-        System.out.println("Name!: " + p.getName());
-
-        // Create new intent and activate it.
-        // Pass in Place p via Parcelable
-        Intent intent = new Intent(this, BarInfoView_activity.class);
-        intent.putExtra("com.example.kevin.barhopper.ListViewActivity.PLACE", (Parcelable) p);
-        startActivity(intent);
-    }
-
-
-    // When provided a LinearLayout and ID of child, return matching child.
-    // If no children with matching ID found, return NULL.
-    public View getChildOfLayout(LinearLayout layout, int ID) {
-        int n = layout.getChildCount();
-        for (int i = 0; i < n; i++) {
-            View child = layout.getChildAt(i);
-            if (child.getId() == ID) {
-                return child;
             }
-        }
-        return null;
-    }
+        });
 
+        linearLayout.setAdapter(adapter);
+
+        System.out.println("display!");
+
+    }
 
     // Provide a function to update interface from a separate thread.
     // Accepts an ArrayList of Places
@@ -315,26 +409,30 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         // Set amount of buttons to max size if more.
         int length = estab.size();
-        if (length > maxSize) {
-            length = maxSize;
-        }
 
-        // Initialize buttons for UI
-        createUI(length);
+        // Create an offset for the first button being Search
+        length = length + 1;
 
-        // Iterate through received Place values, getting information for button
-        for (int i = 0; i < length; i++) {
-            LinearLayout button = (LinearLayout) findViewById(i);
 
+        ListViewButton[] buttonInfo = new ListViewButton[length];
+
+
+
+        for (int i = 1; i < length; i++) {
             // Retrieve name information for respective place.
-            CharSequence placeName = estab.get(i).getName();
+
+            int estabOffset = i-1;
+
+            Place p = estab.get(estabOffset);
+
+            CharSequence placeName = p.getName();
 
             // Place lat and long
-            double toLat = estab.get(i).getLatLng().latitude;
-            double toLong = estab.get(i).getLatLng().longitude;
+            double toLat = p.getLatLng().latitude;
+            double toLong = p.getLatLng().longitude;
 
             // Retrieve shortest distance to place (straight path)
-            double distance = UsefulMathCalculations.calculateDistanceInMile(curLat, curLong, toLat, toLong);
+            double distance = CalcFunction.calculateDistanceInMile(curLat, curLong, toLat, toLong);
 
             // While accuracy is imprecise, set to vague wording
             String distanceTo = "<5 miles";
@@ -342,22 +440,29 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
             if (distance < 1.0) {
                 distanceTo = "<1 Mile";
             }
-            // Set values of the Big and Small texts for each button
-            TextView textView = (TextView) getChildOfLayout(button, R.id.bigText);
-            textView.setText(placeName);
 
-            TextView textView2 = (TextView) getChildOfLayout(button, R.id.smallText);
-            textView2.setText(distanceTo);
-
-
-            // For each button, send onClick characteristics
-            final int finalI = i;
-            button.setOnClickListener(new View.OnClickListener() {
-                public void onClick(View v) {
-                    handleClick(finalI, estab.get(finalI));
-                }
-            });
+            buttonInfo[i] = new ListViewButton(placeName.toString(), distanceTo, p);
         }
+
+
+        ListView linearLayout = (ListView) findViewById(R.id.vertListing);
+        System.out.println(buttonInfo.length);
+        final listbuttonArrayAdapter adapter = new listbuttonArrayAdapter(this, buttonInfo);
+
+
+        linearLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                System.out.println("CLICKED!");
+                System.out.println(parent.findViewById(R.id.bigText));
+
+            }
+        });
+
+        linearLayout.setAdapter(adapter);
+
+        System.out.println("display!");
+
     }
 
     // Passes in current location, receives information about venues in area
