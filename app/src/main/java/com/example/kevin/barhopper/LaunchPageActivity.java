@@ -70,11 +70,7 @@ public class LaunchPageActivity extends AppCompatActivity {
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
-
-
-
                 }
-
 
             }
         }).start();
