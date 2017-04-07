@@ -76,7 +76,7 @@ public class listbuttonArrayAdapter extends BaseAdapter {
             return button;
         }
 
-        View button = inflater.inflate(R.layout.listview_button_layout, null);
+        View button = inflater.inflate(R.layout.listview_button_layout, parent, false);
 
         final ListViewActivity.ListViewButton info = buttonInfo[position+1];
 

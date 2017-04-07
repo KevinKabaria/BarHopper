@@ -3,6 +3,9 @@ package com.example.kevin.barhopper;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Created by kevin on 3/21/17.
  */
@@ -38,6 +41,30 @@ public class CalcFunction {
             }
         }
         return null;
+    }
+
+    // Extract city string from address
+    public static String extractCity(String address) {
+        address = address.replaceAll(", ", ",");
+        address = address.replaceAll(" ", "-");
+
+        String regex = ",[A-Z]{1,}[-][0-9]{4,}";
+
+        Pattern pattern = Pattern.compile(regex);
+
+        Matcher matcher = pattern.matcher(address);
+        address = matcher.replaceAll("FOUND");
+        System.out.println(address);
+        int zipStart = address.lastIndexOf("FOUND");
+
+        int cityStart = address.lastIndexOf(",", zipStart);
+
+        System.out.println("Address: " + address);
+        String city = address.substring(cityStart+1, zipStart);
+        city = city.replaceAll("-", " ");
+        System.out.println("City: " + city);
+
+        return city;
     }
 
 
