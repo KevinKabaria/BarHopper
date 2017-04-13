@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
 import android.media.Rating;
 import android.net.Uri;
@@ -63,7 +65,7 @@ public class BarInfoView_activity extends AppCompatActivity {
 
                 // The url of the pdf file
                 String result = InternetConnect.sendPost(url, parent);
-                System.out.println(result);
+                System.out.println("RESULT!: " + result);
 
 
                 File file;
@@ -141,18 +143,20 @@ public class BarInfoView_activity extends AppCompatActivity {
             description.setImageBitmap(bitmap);
 
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
 
             final ArrayList<byte[]> images = new ArrayList<byte[]>();
             images.add(stream.toByteArray());
+
 
 
             description.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     Intent intent = new Intent(context, MenuDisplay.class);
-
+                    System.out.println("Putting Images!");
                     intent.putExtra("pics", images);
+                    System.out.println("STARTING ACTIVITY!");
                     startActivity(intent);
                 }
             });
@@ -187,10 +191,22 @@ public class BarInfoView_activity extends AppCompatActivity {
                     rendererPage.render(bitmap, null, null,
                             PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
 
-                    bitmaps[i] = bitmap;
+
+                    Bitmap image = bitmap;
+                    Bitmap imageWithBG = Bitmap.createBitmap(image.getWidth(), image.getHeight(),image.getConfig());  // Create another image the same size
+                    imageWithBG.eraseColor(Color.WHITE);  // set its background to white, or whatever color you want
+                    Canvas canvas = new Canvas(imageWithBG);  // create a canvas to draw on the new image
+                    canvas.drawBitmap(image, 0f, 0f, null); // draw old image on the background
+                    image.recycle();  // clear out old image
+
+
+                  //  Bitmap.Config config = imageWithBG.getConfig();
+                    Bitmap jpeg = imageWithBG.copy(Bitmap.Config.RGB_565, true);
+                    bitmaps[i] = jpeg;
+                 //   bitmaps[i] = bitmap;
 
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    jpeg.compress(Bitmap.CompressFormat.JPEG, 70, stream);
                     final byte[] bytes = stream.toByteArray();
                     images.add(bytes);
                     rendererPage.close();
@@ -204,8 +220,9 @@ public class BarInfoView_activity extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         Intent intent = new Intent(context, MenuDisplay.class);
-
+                        System.out.println("Putting Images!");
                         intent.putExtra("pics", images);
+                        System.out.println("STARTING ACTIVITY!");
                         startActivity(intent);
                     }
                 });
