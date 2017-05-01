@@ -284,6 +284,7 @@ public class ListViewActivity extends AppCompatActivity implements OnConnectionF
 
         Location lastLocation;
 
+        PermissionManager.check(this, android.Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_REQUEST);
         if ((lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)) == null) {
             lastLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         }

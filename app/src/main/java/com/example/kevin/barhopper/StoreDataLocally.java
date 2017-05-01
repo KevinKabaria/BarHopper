@@ -28,32 +28,29 @@ public class StoreDataLocally {
         FileInputStream fis = null;
         try {
             fis = ctx.openFileInput(filename);
+            byte[] buffer = new byte[10000];
+            int val = 0;
+            val = fis.read(buffer, 0, 10000);
+            byte[] convertString = new byte[val];
+
+            for (int i=0; i<val; i++) {
+                convertString[i] = buffer[i];
+            }
+
+            return new String(convertString, "UTF-8");
+
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        }
-
-        byte[] buffer = new byte[10000];
-        int val = 0;
-        try {
-            val = fis.read(buffer, 0, 10000);
+            return "NONE";
         } catch (IOException e) {
             e.printStackTrace();
-        }
-
-        byte[] convertString = new byte[val];
-
-        for (int i=0; i<val; i++) {
-            convertString[i] = buffer[i];
+            return "NONE";
         }
 
 
-        try {
-            return new String(convertString, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
 
-        return "";
+     
 
     }
 

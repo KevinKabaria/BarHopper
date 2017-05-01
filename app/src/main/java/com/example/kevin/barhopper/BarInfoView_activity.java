@@ -61,8 +61,13 @@ public class BarInfoView_activity extends AppCompatActivity {
 
 
                 parent.put("text", p.getWebsiteUri().toString()+";"+"menu"+";"+city);
-                URL url = new URL("https://us-central1-silent-wharf-151102.cloudfunctions.net/GetBarInfo");
+            //    URL url = new URL("https://us-central1-silent-wharf-151102.cloudfunctions.net/GetBarInfo");
 
+                // Haveto make url HTTPS to work with internetconnect.
+                String urlToSend = "http://35.185.60.104:6060/";
+                String dataToSend = p.getWebsiteUri().toString()+";"+"menu"+";"+city;
+
+                URL url = new URL(urlToSend + dataToSend);
                 // The url of the pdf file
                 String result = InternetConnect.sendPost(url, parent);
                 System.out.println("RESULT!: " + result);
@@ -143,7 +148,7 @@ public class BarInfoView_activity extends AppCompatActivity {
             description.setImageBitmap(bitmap);
 
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 55, stream);
 
             final ArrayList<byte[]> images = new ArrayList<byte[]>();
             images.add(stream.toByteArray());

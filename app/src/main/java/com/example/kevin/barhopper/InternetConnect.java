@@ -6,6 +6,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -20,28 +21,55 @@ public class InternetConnect {
         StringBuilder builder = new StringBuilder();
         try {
 
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-            conn.setDoOutput(true);
 
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            if (url.toString().contains("https")) {
+                HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+                conn.setDoOutput(true);
 
-
-            // OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-
-            OutputStream os = conn.getOutputStream();
-            os.write(parent.toString().getBytes("UTF-8"));
-            os.flush();
-            os.close();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
 
-            InputStream in = new BufferedInputStream(conn.getInputStream());
+                // OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
 
-            for (int c; (c = in.read()) >= 0; )
-                builder.append((char) c);
+                OutputStream os = conn.getOutputStream();
+                os.write(parent.toString().getBytes("UTF-8"));
+                os.flush();
+                os.close();
 
-            in.close();
-            conn.disconnect();
+
+                InputStream in = new BufferedInputStream(conn.getInputStream());
+
+                for (int c; (c = in.read()) >= 0; )
+                    builder.append((char) c);
+
+                in.close();
+                conn.disconnect();
+            } else {
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setDoOutput(true);
+
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+
+                // OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
+
+                OutputStream os = conn.getOutputStream();
+                os.write(parent.toString().getBytes("UTF-8"));
+                os.flush();
+                os.close();
+
+
+                InputStream in = new BufferedInputStream(conn.getInputStream());
+
+                for (int c; (c = in.read()) >= 0; )
+                    builder.append((char) c);
+
+                in.close();
+                conn.disconnect();
+            }
+
 
 
 
